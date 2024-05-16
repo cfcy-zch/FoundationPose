@@ -124,8 +124,29 @@ class YcbineoatReader:
     depth = cv2.resize(depth, (self.W,self.H), interpolation=cv2.INTER_NEAREST)
     depth[(depth<0.1) | (depth>=self.zfar)] = 0
     return depth
+ #oak
+  def get_color_oak(self,color):
+    # color = imageio.imread(self.color_files[i])[...,:3]
+    color = cv2.cvtColor(color, cv2.COLOR_BGR2RGB)
+    color = cv2.resize(color, (self.W,self.H), interpolation=cv2.INTER_NEAREST)
+    return color
 
+  def get_mask_oak(self,mask):
+    # mask = cv2.imread(self.color_files[i].replace('rgb','masks'),-1)
+    if len(mask.shape)==3:
+      for c in range(3):
+        if mask[...,c].sum()>0:
+          mask = mask[...,c]
+          break
+    mask = cv2.resize(mask, (self.W,self.H), interpolation=cv2.INTER_NEAREST).astype(bool).astype(np.uint8)
+    return mask
 
+  def get_depth_oak(self,depth):
+    depth = depth/1e3#cv2.imread(self.color_files[i].replace('rgb','depth'),-1)/1e3
+    depth = cv2.resize(depth, (self.W,self.H), interpolation=cv2.INTER_NEAREST)
+    depth[(depth<0.1) | (depth>=self.zfar)] = 0
+    return depth
+ #oak
   def get_xyz_map(self,i):
     depth = self.get_depth(i)
     xyz_map = depth2xyzmap(depth, self.K)

@@ -10,16 +10,19 @@
 from estimater import *
 from datareader import *
 import argparse
+import torch, gc
 
+gc.collect()
+torch.cuda.empty_cache()
 
 if __name__=='__main__':
   parser = argparse.ArgumentParser()
   code_dir = os.path.dirname(os.path.realpath(__file__))
-  parser.add_argument('--mesh_file', type=str, default=f'{code_dir}/demo_data/mustard0/mesh/textured_simple.obj')
-  parser.add_argument('--test_scene_dir', type=str, default=f'{code_dir}/demo_data/mustard0')
+  parser.add_argument('--mesh_file', type=str, default=f'{code_dir}/demo_data/my_bottle/mesh/textured_simple.obj')
+  parser.add_argument('--test_scene_dir', type=str, default=f'{code_dir}/demo_data/my_bottle')
   parser.add_argument('--est_refine_iter', type=int, default=5)
   parser.add_argument('--track_refine_iter', type=int, default=2)
-  parser.add_argument('--debug', type=int, default=1)
+  parser.add_argument('--debug', type=int, default=3)
   parser.add_argument('--debug_dir', type=str, default=f'{code_dir}/debug')
   args = parser.parse_args()
 
@@ -41,7 +44,7 @@ if __name__=='__main__':
   est = FoundationPose(model_pts=mesh.vertices, model_normals=mesh.vertex_normals, mesh=mesh, scorer=scorer, refiner=refiner, debug_dir=debug_dir, debug=debug, glctx=glctx)
   logging.info("estimator initialization done")
 
-  reader = YcbineoatReader(video_dir=args.test_scene_dir, shorter_side=None, zfar=np.inf)
+  reader = YcbineoatReader(video_dir=args.test_scene_dir, shorter_side=None, zfar=4)  #default: shorter_side = None 如果爆显存把这个值设为400
 
   for i in range(len(reader.color_files)):
     logging.info(f'i:{i}')
@@ -64,13 +67,12 @@ if __name__=='__main__':
 
     os.makedirs(f'{reader.video_dir}/ob_in_cam', exist_ok=True)
     np.savetxt(f'{reader.video_dir}/ob_in_cam/{reader.id_strs[i]}.txt', pose.reshape(4,4))
-
     if debug>=1:
       center_pose = pose#@np.linalg.inv(to_origin)
       vis = draw_posed_3d_box(reader.K, img=color, ob_in_cam=center_pose@np.linalg.inv(to_origin), bbox=bbox)
       vis = draw_xyz_axis(color, ob_in_cam=center_pose, scale=0.1, K=reader.K, thickness=3, transparency=0, is_input_rgb=True)
       cv2.imshow('1', vis[...,::-1])
-      cv2.waitKey(1)
+      cv2.waitKey(0)
 
 
     if debug>=2:

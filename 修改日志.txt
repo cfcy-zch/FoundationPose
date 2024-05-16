@@ -1,0 +1,4 @@
+"/home/hh/anaconda3/envs/foundationpose/lib/python3.9/site-packages/pytorch_kinematics/transforms/transform3d.py"
+148行更改了设备，从cpu改为cuda
+
+Conda虚拟环境下libp11-kit.so.0: undefined symbol: ffi_type_pointer...问题解决（conda环境下ros问题）
