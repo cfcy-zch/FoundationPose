@@ -396,7 +396,7 @@ with dai.Device(pipeline) as device:
                                 #以base_link作为参考坐标系
                                 move_group.set_pose_reference_frame('base_link')
                                 #起始位姿
-                                move_group.stop()
+                                # move_group.stop()
                                 pose_goal = geometry_msgs.msg.Pose()
                                 pose_goal.orientation.x = 0.612321
                                 pose_goal.orientation.y = 0.35363
@@ -408,7 +408,7 @@ with dai.Device(pipeline) as device:
                                 move_group.set_pose_target(pose_goal)
                                 plan = move_group.go(wait=True)
                                 print('plan',plan)
-                                move_group.stop()
+                                # move_group.stop()
                                 move_group.clear_pose_targets()# 对某一目标位姿进行运动规划以后，最好清除这个目标位姿。
                                 #hand_reday位姿
                                 H_translation = np.array([[1, 0, 0, -0.14],              # 平移一个距离
@@ -423,7 +423,7 @@ with dai.Device(pipeline) as device:
                                 move_group.set_pose_target(pose_goal_1)
                                 plan_1 = move_group.go(wait=True)
                                 print('plan_1',plan_1)
-                                move_group.stop()
+                                # move_group.stop()
                                 move_group.clear_pose_targets()
                                 #hand_final位姿
                                 pose_goal_2 = homogeneous_matrix_to_pose(np.array([[1, 0, 0, 0.4],
@@ -433,7 +433,7 @@ with dai.Device(pipeline) as device:
                                 move_group.set_pose_target(pose_goal_2)
                                 plan_2 = move_group.go(wait=True)
                                 print('plan_2',plan_2)
-                                move_group.stop()
+                                # move_group.stop()
                                 move_group.clear_pose_targets()
                                 break
                             elif user_input.lower() == 'q':
