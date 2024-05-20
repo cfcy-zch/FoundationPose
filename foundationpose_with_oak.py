@@ -335,11 +335,11 @@ with dai.Device(pipeline) as device:
                         center_pose = pose#@np.linalg.inv(to_origin)
                         vis = draw_posed_3d_box(reader.K, img=color, ob_in_cam=center_pose@np.linalg.inv(to_origin), bbox=bbox)
                         vis = draw_xyz_axis(color, ob_in_cam=center_pose, scale=0.1, K=reader.K, thickness=3, transparency=0, is_input_rgb=True)
-                        # cTime = time.time()
-                        # fps = 1 / (cTime - pTime)       #计算处理频率
-                        # pTime = cTime
-                        # #rate.sleep()
-                        # cv2.putText(vis, str(int(fps)), (10, 70), cv2.FONT_HERSHEY_PLAIN, 3,(255, 255, 255), 2)
+                        cTime = time.time()
+                        fps = 1 / (cTime - pTime)       #计算处理频率
+                        pTime = cTime
+                        #rate.sleep()
+                        cv2.putText(vis, str(int(fps)), (10, 70), cv2.FONT_HERSHEY_PLAIN, 3,(255, 255, 255), 2)
                         cv2.imshow('1', vis[...,::-1])
 
             key = cv2.waitKey(1)
