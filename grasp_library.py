@@ -725,7 +725,9 @@ class Grasp:
         self.slicename = slicename
         self.grasp_kind = grasp_kind                  #grasp_kind = 'straight' 'straight_power' 'flexed' 
         self.H_list = H_list
+        self.H_list_hand_ready = None               #机械臂基座坐标系下，手掌抓取坐标系在准备时的位姿，用于安全性判断
         self.H_list_hand = None                     #机械臂基座坐标系下，手掌抓取坐标系的位姿，用于安全性判断
+        self.H_list_final_ready = None              #机械臂基座坐标系下，末端坐标系在准备时的位姿，是直接发给机械臂的指令
         self.H_list_final = None                    #机械臂基座坐标系下，末端坐标系的位姿，是直接发给机械臂的指令
         self.K = None                               #调节系数 调节抓取的松紧，默认为0，还没想好怎么弄
         self.qa = None
@@ -890,9 +892,18 @@ class Grasp:
         plot_objs_plotly([vertices_ready,vertices_hand,vertices_obj], [ faces_hand, faces_hand, faces_obj])
     def get_final_H(self, H_cam_base, H_obj_cam, H_tool_hand): 
         self.H_list_hand = []
+        self.H_list_hand_ready = []
+        self.H_list_final_ready = []
         self.H_list_final = []
+        H_translation = np.array([[1, 0, 0, -0.14],              # 平移一个距离
+                            [0, 1, 0, 0],
+                            [0, 0, 1, 0],
+                            [0, 0, 0, 1]
+                        ])
         for H_hand_obj in self.H_list :
             self.H_list_hand.append(H_cam_base @ H_obj_cam @ H_hand_obj)
+            self.H_list_hand_ready.append(H_cam_base @ H_obj_cam @ (H_hand_obj @ H_translation))
+            self.H_list_final_ready.append(H_cam_base @ H_obj_cam @ (H_hand_obj @ H_translation) @ H_tool_hand)
             self.H_list_final.append(H_cam_base @ H_obj_cam @ H_hand_obj @ H_tool_hand)
 #绘制直方图
 def plot_histogram(data, bins=10, color='blue', edgecolor='black', title='Histogram', xlabel='Value', ylabel='Frequency'):

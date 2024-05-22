@@ -22,9 +22,12 @@ import geometry_msgs.msg
 from math import pi
 from std_msgs.msg import String
 from moveit_commander.conversions import pose_to_list
+
+import asyncio
+from hand_api import Hand
 start_time = time.time()
-#foundationpose 初始化
-#region
+#region foundationpose 初始化
+
 parser = argparse.ArgumentParser()
 code_dir = os.path.dirname(os.path.realpath(__file__))
 parser.add_argument('--mesh_file', type=str, default=f'{code_dir}/demo_data/my_bottle/mesh/textured_simple.obj')
@@ -56,16 +59,29 @@ logging.info("estimator initialization done")
 reader = YcbineoatReader(video_dir=args.test_scene_dir, shorter_side=None, zfar=3)  #default: shorter_side = None 如果爆显存把这个值设为400 深度最大值设为3m
 #endregion
 
-#读取抓取数据
+#region 读取抓取数据
 file_path_1 = "/home/hh/ros1_ws/src/Q-mat for grasp python/file folder/All_Slice.pkl"
 file_path_2 = "/home/hh/ros1_ws/src/Q-mat for grasp python/file folder/All_Grasp.pkl"
 with open(file_path_1, 'rb') as file:
     All_Slice = pickle.load(file)
 with open(file_path_2, 'rb') as file:
     All_Grasp = pickle.load(file)
+#endregion
 
-#moveit commander  move_grounp 初始化
-#region
+#region 灵巧手初始化
+# async def joints_control(hand:Hand, joints):
+#     while hand.initialized != 1:
+#         await asyncio.sleep(1)  # 使用 asyncio.sleep 代替 time.sleep
+#     await hand.set_pos_joints(joints)
+#     await asyncio.sleep(1.5)
+# np.set_printoptions(precision=3, suppress=True)
+# hand = Hand(hand_name="right")
+# # joints = np.array([0.0,0.4,0.5,0.0,0.4,1.0,0.0,0.4,0.0,0.4,0.0,0.0,0.0])#([0.0,0.3,0.0,0.0,1.7,1.5,0.0,1.5,0.0,1.5,1.2,0.1,0.9])
+# asyncio.run(joints_control(hand, np.array([0.0,0.4,0.5,0.0,0.4,1.0,0.0,0.4,0.0,0.4,0.0,0.0,0.0])))
+# asyncio.run(joints_control(hand, np.array([0.0,0.4,1.0,0.0,0.4,1.0,0.0,0.4,0.0,0.4,0.0,0.0,0.0])))
+#endregion
+
+#region moveit commander  move_grounp 初始化
 moveit_commander.roscpp_initialize(sys.argv)
 rospy.init_node('move_group_python_interface_tutorial', anonymous=True)
 robot = moveit_commander.RobotCommander()
@@ -80,7 +96,7 @@ display_trajectory_publisher = rospy.Publisher('/move_group/display_planned_path
 plane_pose = geometry_msgs.msg.PoseStamped()
 plane_pose.header.frame_id = "base_link"
 plane_pose.pose.orientation.w = 1.0
-plane_pose.pose.position.z = -0.05 # 平面上表面与base_link原点重合
+plane_pose.pose.position.z = -0.05 - 18.072e-3 # 平面上表面与base_link原点重合
 plane_name = "plane"
 scene.add_box(plane_name, plane_pose, size=(2, 2, 0.1))
 #添加灵巧手碰撞区并固连在末端坐标系
@@ -112,8 +128,7 @@ print("")
     
 #endregion
 
-#oak相机初始化
-#region
+#region oak相机初始化
 def resize_image(image, scale_percent):
     """
     调整图像大小并返回调整后的图像。
@@ -373,17 +388,31 @@ with dai.Device(pipeline) as device:
                     # print(type(pose.reshape(4, 4)))#<class 'numpy.ndarray'>
                     cv2.waitKey(0)
                     #筛选
-                    H_base_cam = rpy_d_to_H([2.5437, 0.67976, 0.74532],[0.017891, -0.30749, 1.6099])#后面要改一次
+                    # H_translation_back = np.array([[1, 0, 0, 0],              # 平移一个距离
+                    #                                 [0, 1, 0, 0],
+                    #                                 [0, 0, 1, 0.04],
+                    #                                 [0, 0, 0, 1]
+                    #                             ])
+                    H_base_cam = rpy_d_to_H([2.5437, 0.67976, 0.74532],[0.017891, -0.30755, 1.6098])
                     H_obj_cam = pose.reshape(4, 4)
                     # H_hand_obj = H_list
                     H_hand_tool = rpy_d_to_H ([-1.5708, -0.61087, -0.055182],[0.026734, 0.00824, 0.10575])
                     for grasp_name, grasp_obj in All_Grasp.items():
                         grasp_obj.get_final_H(H_cam_base = homogeneous_inverse(H_base_cam), H_obj_cam = H_obj_cam, H_tool_hand = homogeneous_inverse(H_hand_tool))
                     you_like = []
+                    H_translation = np.array([[1, 0, 0, -0.14],              # 平移一个距离
+                                            [0, 1, 0, 0],
+                                            [0, 0, 1, 0],
+                                            [0, 0, 0, 1]
+                                        ])
                     for key, value in All_Grasp.items():
                         #机械手坐标系高度要够 值要改一次
-                        indices = [i for i, matrix in enumerate(value.H_list_hand) if matrix[2, 3] > 0.11/2]
-                        if indices :#and value.slice.shape == 'Line' and value.slice.edgepoint_id is not None:
+                        threshold = 0.11 / 2 - 18.072e-3 + 75e-3
+                        indices = [
+                            i for i, matrix in enumerate(value.H_list_hand)
+                            if matrix[2, 3] > threshold and (matrix @ H_translation)[2, 3] > threshold
+                        ]
+                        if indices and value.direction == 'middle':
                             for idx in indices:
                                 you_like.append((key, idx))
                     while True:
@@ -395,45 +424,70 @@ with dai.Device(pipeline) as device:
                             if user_input.lower() == 's':
                                 #以base_link作为参考坐标系
                                 move_group.set_pose_reference_frame('base_link')
+                                #速度加速度设置
+                                move_group.set_max_velocity_scaling_factor(0.1)  # 设置为原来的10%
+                                move_group.set_max_acceleration_scaling_factor(0.1)  # 设置为原来的10%
+                                # 设置位置(单位：米)和姿态（单位：弧度）的允许误差
+                                move_group.set_goal_position_tolerance(0.001)
+                                move_group.set_goal_orientation_tolerance(0.01)
+                                # 当运动规划失败后，允许重新规划
+                                move_group.allow_replanning(True)
                                 #起始位姿
-                                move_group.stop()
-                                pose_goal = geometry_msgs.msg.Pose()
-                                pose_goal.orientation.x = 0.612321
-                                pose_goal.orientation.y = 0.35363
-                                pose_goal.orientation.z = 0.182997
-                                pose_goal.orientation.w = 0.683034
-                                pose_goal.position.x = -0.3186
-                                pose_goal.position.y = -0.623452
-                                pose_goal.position.z = 0.599253
-                                move_group.set_pose_target(pose_goal)
-                                plan = move_group.go(wait=True)
-                                print('plan',plan)
-                                move_group.stop()
-                                move_group.clear_pose_targets()# 对某一目标位姿进行运动规划以后，最好清除这个目标位姿。
+                                # pose_goal = geometry_msgs.msg.Pose()
+                                # pose_goal.orientation.x = 0.612321
+                                # pose_goal.orientation.y = 0.35363
+                                # pose_goal.orientation.z = 0.182997
+                                # pose_goal.orientation.w = 0.683034
+                                # pose_goal.position.x = -0.3186
+                                # pose_goal.position.y = -0.623452
+                                # pose_goal.position.z = 0.599253
+                                # move_group.set_pose_target(pose_goal)
+                                # plan = move_group.go(wait=True)
+                                # print('plan',plan)
+                                # if not plan:
+                                #     break
+                                joint_goal = move_group.get_current_joint_values()
+                                joint_goal[0] = pi/4
+                                joint_goal[1] = pi/6
+                                joint_goal[2] = -pi/4
+                                joint_goal[3] = 0
+                                joint_goal[4] = 0
+                                joint_goal[5] = -pi/2
+                                # joint_goal[6] = 0
+
+                                # 使用关节值或位姿来调用 go 命令，
+                                # 在已经设置了 planning group 的目标位姿或或目标关节角度的情况下可以不带任何参数。
+                                move_group.go(joint_goal, wait=True)
+                                # move_group.clear_pose_targets()# 对某一目标位姿进行运动规划以后，最好清除这个目标位姿。
+                                time.sleep(0.5)
                                 #hand_reday位姿
-                                H_translation = np.array([[1, 0, 0, -0.14],              # 平移一个距离
-                                                        [0, 1, 0, 0],
-                                                        [0, 0, 1, 0],
-                                                        [0, 0, 0, 1]
-                                                        ])
-                                pose_goal_1 = homogeneous_matrix_to_pose(np.array([[-1, 0, 0, 0.4],
-                                                                                    [0, -1, 0, 0.2],
-                                                                                    [0, 0, 1, 0.4],
-                                                                                    [0, 0, 0, 1]]))
+                                pose_goal_1 = homogeneous_matrix_to_pose(All_Grasp[you_like[which_one][0]].H_list_final_ready[you_like[which_one][1]])
+                                print(All_Grasp[you_like[which_one][0]].H_list_final[you_like[which_one][1]] @ H_translation)
+                                # pose_goal_1 = homogeneous_matrix_to_pose(np.array([[-1, 0, 0, 0.4],
+                                #                                                     [0, -1, 0, 0.2],
+                                #                                                     [0, 0, 1, 0.4],
+                                #                                                     [0, 0, 0, 1]]))
                                 move_group.set_pose_target(pose_goal_1)
                                 plan_1 = move_group.go(wait=True)
                                 print('plan_1',plan_1)
-                                move_group.stop()
+                                if not plan_1:
+                                    break
+                                # move_group.stop()
                                 move_group.clear_pose_targets()
+                                time.sleep(0.5)
                                 #hand_final位姿
-                                pose_goal_2 = homogeneous_matrix_to_pose(np.array([[1, 0, 0, 0.4],
-                                                                                    [0, 1, 0, 0.2],
-                                                                                    [0, 0, 1, 0.4],
-                                                                                    [0, 0, 0, 1]]))
+                                pose_goal_2 = homogeneous_matrix_to_pose(All_Grasp[you_like[which_one][0]].H_list_final[you_like[which_one][1]])
+                                print(All_Grasp[you_like[which_one][0]].H_list_final[you_like[which_one][1]])
+                                # pose_goal_2 = homogeneous_matrix_to_pose(np.array([[1, 0, 0, 0.4],
+                                #                                                     [0, 1, 0, 0.2],
+                                #                                                     [0, 0, 1, 0.4],
+                                #                                                     [0, 0, 0, 1]]))
                                 move_group.set_pose_target(pose_goal_2)
                                 plan_2 = move_group.go(wait=True)
                                 print('plan_2',plan_2)
-                                move_group.stop()
+                                if not plan_2:
+                                    break
+                                # move_group.stop()
                                 move_group.clear_pose_targets()
                                 break
                             elif user_input.lower() == 'q':
@@ -510,4 +564,7 @@ with dai.Device(pipeline) as device:
                         elif key == ord("q"):
                             j = 1
                             print('退出')
+                            # 关闭并退出moveit
+                            moveit_commander.roscpp_shutdown()
+                            moveit_commander.os._exit(0)
                             break

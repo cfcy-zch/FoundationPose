@@ -3,15 +3,15 @@ import time
 import asyncio
 from hand_api import Hand
 async def joints_control(hand:Hand, joints):
+    while hand.initialized != 1:
+        await asyncio.sleep(1)  # 使用 asyncio.sleep 代替 time.sleep
     await hand.set_pos_joints(joints)
     await asyncio.sleep(1.5)
 np.set_printoptions(precision=3, suppress=True)
 hand = Hand(hand_name="right")
-while hand.initialized != 1:
-    time.sleep(1)
-joints = np.array([0.0,0.4,0.5,0.0,0.4,1.0,0.0,0.4,0.0,0.4,0.0,0.0,0.0])#([0.0,0.3,0.0,0.0,1.7,1.5,0.0,1.5,0.0,1.5,1.2,0.1,0.9])
+# joints = np.array([0.0,0.4,0.5,0.0,0.4,1.0,0.0,0.4,0.0,0.4,0.0,0.0,0.0])#([0.0,0.3,0.0,0.0,1.7,1.5,0.0,1.5,0.0,1.5,1.2,0.1,0.9])
 asyncio.run(joints_control(hand, np.array([0.0,0.4,0.5,0.0,0.4,1.0,0.0,0.4,0.0,0.4,0.0,0.0,0.0])))
-asyncio.run(joints_control(hand, np.array([0.0,0.4,1.0,0.0,0.4,1.0,0.0,0.4,0.0,0.4,0.0,0.0,0.0])))
+asyncio.run(joints_control(hand, np.array([0.0,0.4,1.0,0.0,0.4,1.0,0.0,0.4,0.0,0.4,0.5,0.0,0.0])))
 # async def task(hand:Hand):
     
 #     dt = 5

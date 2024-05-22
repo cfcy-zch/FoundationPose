@@ -173,7 +173,7 @@ class Hand:
         
     def tf_general_listener(self, tf, frame:TF.TF_Msg):
         self.rx_cnt += 1
-        print(f"recv type={frame.type}, len={frame.len}, cnt={self.rx_cnt}")
+        # print(f"recv type={frame.type}, len={frame.len}, cnt={self.rx_cnt}")
         if frame.type == COMM_GET_MOTOR_STATE:
             try:
                 motor_states_reply = ReplyGetMotorStates(frame.data)

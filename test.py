@@ -69,47 +69,49 @@ print("============ Available Planning Groups:", robot.get_group_names())
 print("============ Printing robot state")
 print(robot.get_current_state())
 print("")
-
-# # 我们可以从 planning group 中获取并调整各关节角度:
-# joint_goal = move_group.get_current_joint_values()
-# joint_goal[0] = pi/4
-# joint_goal[1] = pi/6
-# joint_goal[2] = -pi/4
-# joint_goal[3] = 0
-# joint_goal[4] = 0
-# joint_goal[5] = -pi/2
-# # joint_goal[6] = 0
-
-# # 使用关节值或位姿来调用 go 命令，
-# # 在已经设置了 planning group 的目标位姿或或目标关节角度的情况下可以不带任何参数。
-# move_group.go(joint_goal, wait=True)
-# #以base_link作为参考坐标系
+#以base_link作为参考坐标系
 move_group.set_pose_reference_frame('base_link')
-# # 调用 ``stop()`` 以确保没有未完成的运动。
-move_group.stop()
+move_group.set_max_velocity_scaling_factor(0.05)  # 设置为原来的10%
+move_group.set_max_acceleration_scaling_factor(0.05)  # 设置为原来的10%
+# 我们可以从 planning group 中获取并调整各关节角度:
+joint_goal = move_group.get_current_joint_values()
+joint_goal[0] = pi/4
+joint_goal[1] = pi/6
+joint_goal[2] = -pi/4
+joint_goal[3] = 0
+joint_goal[4] = 0
+joint_goal[5] = -pi/2
+# joint_goal[6] = 0
 
-# pose_goal = homogeneous_matrix_to_pose(np.array([[-1, 0, 0, 0.4],
-#                                                 [0, -1, 0, 0.2],
-#                                                 [0, 0, 1, 0.4],
-#                                                 [0, 0, 0, 1]]))
-# print(pose_goal)
-pose_goal = geometry_msgs.msg.Pose()
-pose_goal.orientation.x = 0.612321
-pose_goal.orientation.y = 0.35363
-pose_goal.orientation.z = 0.182997
-pose_goal.orientation.w = 0.683034
-pose_goal.position.x = -0.3186
-pose_goal.position.y = -0.623452
-pose_goal.position.z = 0.599253
+# 使用关节值或位姿来调用 go 命令，
+# 在已经设置了 planning group 的目标位姿或或目标关节角度的情况下可以不带任何参数。
+move_group.go(joint_goal, wait=True)
 
-move_group.set_pose_target(pose_goal)
-plan = move_group.go(wait=True)
-print('plan',plan)
+# # # 调用 ``stop()`` 以确保没有未完成的运动。
+# # move_group.stop()
+
+# # pose_goal = homogeneous_matrix_to_pose(np.array([[-1, 0, 0, 0.4],
+# #                                                 [0, -1, 0, 0.2],
+# #                                                 [0, 0, 1, 0.4],
+# #                                                 [0, 0, 0, 1]]))
+# # print(pose_goal)
+# pose_goal = geometry_msgs.msg.Pose()
+# pose_goal.orientation.x = 0.612321
+# pose_goal.orientation.y = 0.35363
+# pose_goal.orientation.z = 0.182997
+# pose_goal.orientation.w = 0.683034
+# pose_goal.position.x = -0.3186
+# pose_goal.position.y = -0.623452
+# pose_goal.position.z = 0.599253
+
+# move_group.set_pose_target(pose_goal)
+# plan = move_group.go(wait=True)
+# print('plan',plan)
 # 调用 `stop()` 以确保没有未完成的运动。
-move_group.stop()
+# move_group.stop()
 # 对某一目标位姿进行运动规划以后，最好清除这个目标位姿。
 # 注意: 没有类似于 clear_joint_value_targets() 的函数
-move_group.clear_pose_targets()
+# move_group.clear_pose_targets()
 
 pose_goal_1 = homogeneous_matrix_to_pose(np.array([[-1, 0, 0, 0.4],
                                                     [0, -1, 0, 0.2],
@@ -118,7 +120,7 @@ pose_goal_1 = homogeneous_matrix_to_pose(np.array([[-1, 0, 0, 0.4],
 move_group.set_pose_target(pose_goal_1)
 plan_1 = move_group.go(wait=True)
 print('plan_1',plan_1)
-move_group.stop()
+# move_group.stop()
 move_group.clear_pose_targets()
 
 pose_goal_2 = homogeneous_matrix_to_pose(np.array([[1, 0, 0, 0.4],
@@ -128,5 +130,5 @@ pose_goal_2 = homogeneous_matrix_to_pose(np.array([[1, 0, 0, 0.4],
 move_group.set_pose_target(pose_goal_2)
 plan_2 = move_group.go(wait=True)
 print('plan_2',plan_2)
-move_group.stop()
+# move_group.stop()
 move_group.clear_pose_targets()
